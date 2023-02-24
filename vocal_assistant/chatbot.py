@@ -145,7 +145,7 @@ class Chatbot:
             if self.rude_mode:
                 sentence = f"""Si on disait "{sentence}" à un ami particulièrement méprisant, grossier et désagréable, il répondrait ceci : """
             else:
-                sentence = f"""Si on disait "{sentence}" à un bon ami, il répondrait ceci : """
+                sentence = f"""Si on disait "{sentence}" à un bon ami il répondrait ceci : """
 
             
 
