@@ -64,7 +64,7 @@ class Chatbot:
     (liste complète sur https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=tts)
     """
 
-    def __init__(self, language="en", print_conversation=False):
+    def __init__(self, language="en", print_conversation=False, rude_mode=False):
         """
         - language : "fr" ou "en"
         - print_conversation : toute la conversation avec le chatbot sera affichée à l'écran si 
@@ -73,6 +73,7 @@ class Chatbot:
 
         self.language = language
         self.print_conversation = print_conversation
+        self.rude_mode = rude_mode
 
         openai.api_key = keys.OPENAI_API_KEY
 
@@ -96,12 +97,8 @@ class Chatbot:
     
     def listen(self):
         """
-        Lance la boucle principale du programme pour que le chatbot écoute le micro de l'utilisateur
+        Écoute le micro de l'utilisateur et réagit en conséquence
         """
-        if self.language == "fr": 
-            self.__say(self.__ask_ai("Bonjour"))
-        elif self.language == "en": 
-            self.__say(self.__ask_ai("Hello!"))
 
         while(True):
 
@@ -109,30 +106,48 @@ class Chatbot:
             if speech_recognition_result.reason == speechsdk.ResultReason.RecognizedSpeech:
                 if self.print_conversation: print(speech_recognition_result.text)
                 if self.language == "en" and "exit program" in speech_recognition_result.text.lower():
-                    self.__say("Have a nice day!")
-                    return
+                    self.say("Have a nice day!")
+                    return (speech_recognition_result.text, "Have a nice day!")
                 elif self.language == "fr" and "ferme l'application" in speech_recognition_result.text.lower():
-                    self.__say("À plus tard !")
-                    return
+                    self.say("À plus tard !")
+                    return (speech_recognition_result.text, "À plus tard !")
                 
                 if self.language == "en" and "tais-toi" in speech_recognition_result.text.lower():
-                    self.speech_synthesizer.stop_speaking()
+                    self.stop_talking()
+                    return (speech_recognition_result.text)
                 elif self.language == "fr" and "tais-toi" in speech_recognition_result.text.lower():
-                    self.speech_synthesizer.stop_speaking()
-                answer = self.__ask_ai(speech_recognition_result.text)
-                self.__say(answer)
+                    self.stop_talking()
+                    return (speech_recognition_result.text)
+                answer = self.ask_ai(speech_recognition_result.text)
+                self.say(answer)
+                return (speech_recognition_result.text, answer)
 
-        
+            
     
-    def __ask_ai(self, sentence):
+    def say(self, sentence):
+        """
+        Prononce la phrase 'sentence'
+        """
+        self.speech_synthesizer.speak_text_async(sentence)
+        if self.print_conversation: print(sentence)
+
+    def ask_ai(self, sentence):
         """
         Envoie une requête à l'API d'OpenAI
         """
 
         if self.language=="en":
-            sentence = f"""If someone told an artificial intelligence this: '{sentence}', the AI would answer this:"""
+            if self.rude_mode:
+                sentence = f"""If someone told "{sentence}" to a haughty and rude AI, the AI would answer this:"""
+            else:
+                sentence = f"""If someone told "{sentence}" to an AI, the AI would answer this:"""
         elif self.language=="fr":
-            sentence = f"""Si on disait ceci à une intelligence artificielle : '{sentence}', elle répondrait ceci : """
+            if self.rude_mode:
+                sentence = f"""Si on disait "{sentence}" à un ami particulièrement méprisant, grossier et désagréable, il répondrait ceci : """
+            else:
+                sentence = f"""Si on disait "{sentence}" à un bon ami, il répondrait ceci : """
+
+            
 
         else: raise ValueError("Unsupported language, only French and English are supported")
 
@@ -142,9 +157,6 @@ class Chatbot:
         
         return answer.replace('"', "").replace("'", "")
     
-    def __say(self, sentence):
-        """
-        Prononce la phrase 'sentence'
-        """
-        self.speech_synthesizer.speak_text_async(sentence)
-        if self.print_conversation: print(sentence)
+    def stop_talking():
+
+        self.speech_synthesizer.stop_speaking()
